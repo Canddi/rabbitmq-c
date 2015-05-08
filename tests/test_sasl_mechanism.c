@@ -1,6 +1,10 @@
+/* vim:set ft=c ts=2 sw=2 sts=2 et cindent: */
 /*
  * ***** BEGIN LICENSE BLOCK *****
  * Version: MIT
+ *
+ * Portions created by Alan Antonuk are Copyright (c) 2012-2013
+ * Alan Antonuk. All Rights Reserved.
  *
  * Portions created by VMware are Copyright (c) 2007-2012 VMware, Inc.
  * All Rights Reserved.
@@ -30,51 +34,39 @@
  * ***** END LICENSE BLOCK *****
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "amqp_private.h"
-#include "socket.h"
-#include <fcntl.h>
-#include <stdint.h>
-#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
-int
-amqp_socket_init(void)
+#include <amqp_socket.h>
+
+static void parse_success(amqp_bytes_t mechanisms,
+                          amqp_sasl_method_enum method)
 {
-	return 0;
+  if (!sasl_mechanism_in_list(mechanisms, method)) {
+    fprintf(stderr,
+            "Expected to find mechanism in list, but didn't: %s\n",
+            (char *)mechanisms.bytes);
+    abort();
+  }
 }
 
-int
-amqp_socket_error(void)
+static void parse_fail(amqp_bytes_t mechanisms,
+                       amqp_sasl_method_enum method)
 {
-	return errno | ERROR_CATEGORY_OS;
+  if (sasl_mechanism_in_list(mechanisms, method)) {
+    fprintf(stderr,
+            "Expected the mechanism not on the list, but it was present: %s\n",
+            (char *)mechanisms.bytes);
+    abort();
+  }
 }
 
-int amqp_socket_socket(int domain, int type, int proto)
+int main(void)
 {
-	int flags;
-
-	int s = socket(domain, type, proto);
-	if (s < 0)
-		return s;
-
-	/* Always enable CLOEXEC on the socket */
-	flags = fcntl(s, F_GETFD);
-	if (flags == -1
-	    || fcntl(s, F_SETFD, (long)(flags | FD_CLOEXEC)) == -1) {
-		int e = errno;
-		close(s);
-		errno = e;
-		return -1;
-	}
-
-	return s;
-}
-
-char *amqp_os_error_string(int err)
-{
-	return strdup(strerror(err));
+  parse_success(amqp_cstring_bytes("DIGEST-MD5 CRAM-MD5 LOGIN PLAIN"), AMQP_SASL_METHOD_PLAIN);
+  parse_fail(amqp_cstring_bytes("DIGEST-MD5 CRAM-MD5 LOGIN PLAIN"), AMQP_SASL_METHOD_EXTERNAL);
+  parse_success(amqp_cstring_bytes("DIGEST-MD5 CRAM-MD5 EXTERNAL"), AMQP_SASL_METHOD_EXTERNAL);
+  parse_fail(amqp_cstring_bytes("DIGEST-MD5 CRAM-MD5 EXTERNAL"), AMQP_SASL_METHOD_PLAIN);
+  return 0;
 }

@@ -1,15 +1,6 @@
-#ifndef librabbitmq_unix_socket_h
-#define librabbitmq_unix_socket_h
-
+/* vim:set ft=c ts=2 sw=2 sts=2 et cindent: */
 /*
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MIT
- *
- * Portions created by VMware are Copyright (c) 2007-2012 VMware, Inc.
- * All Rights Reserved.
- *
- * Portions created by Tony Garnock-Jones are Copyright (c) 2009-2010
- * VMware, Inc. and Tony Garnock-Jones. All Rights Reserved.
+ * Copyright 2015 Alan Antonuk
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -30,37 +21,35 @@
  * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * ***** END LICENSE BLOCK *****
  */
 
-#include <errno.h>
-#include <sys/types.h>      /* On older BSD this must come before net includes */
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <sys/uio.h>
-#include <unistd.h>
-
-int
-amqp_socket_init(void);
-
-int
-amqp_socket_socket(int domain, int type, int proto);
-
-int
-amqp_socket_error(void);
-
-#define amqp_socket_setsockopt setsockopt
-#define amqp_socket_close close
-#define amqp_socket_writev writev
-
-#ifndef MSG_NOSIGNAL
-# define MSG_NOSIGNAL 0x0
+#ifdef HAVE_CONFIG_H
+#include "config.h"
 #endif
 
-#if defined(SO_NOSIGPIPE) && !defined(MSG_NOSIGNAL)
-# define DISABLE_SIGPIPE_WITH_SETSOCKOPT
-#endif
+#include "amqp.h"
 
-#endif
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+static void check_errorstrings(amqp_status_enum start, amqp_status_enum end) {
+  int i;
+  for (i = start; i > end; --i) {
+    const char* err = amqp_error_string2(i);
+    if (0 == strcmp(err, "(unknown error)")) {
+      printf("amqp_status_enum value %s%X",
+             i < 0 ? "-" : "",
+             (unsigned)i);
+      abort();
+    }
+  }
+}
+
+int main(void) {
+  check_errorstrings(AMQP_STATUS_OK, _AMQP_STATUS_NEXT_VALUE);
+  check_errorstrings(AMQP_STATUS_TCP_ERROR, _AMQP_STATUS_TCP_NEXT_VALUE);
+  check_errorstrings(AMQP_STATUS_SSL_ERROR, _AMQP_STATUS_SSL_NEXT_VALUE);
+
+  return 0;
+}

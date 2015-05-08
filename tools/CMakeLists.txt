@@ -1,4 +1,5 @@
-include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${LIBRABBITMQ_INCLUDE_DIRS} ${POPT_INCLUDE_DIRS})
+# vim:set ts=2 sw=2 sts=2 et:
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${LIBRABBITMQ_INCLUDE_DIRS} ${POPT_INCLUDE_DIR})
 
 if (WIN32)
     set(PLATFORM_DIR win32)
@@ -69,6 +70,10 @@ if (BUILD_TOOLS_DOCS)
   else(XMLTO_FOUND)
     message(WARNING "xmlto not found, will not build tools documentation")
   endif(XMLTO_FOUND)
+endif()
+
+if (ENABLE_SSL_SUPPORT)
+  add_definitions(-DWITH_SSL=1)
 endif()
 
 install(TARGETS amqp-publish amqp-get amqp-consume amqp-declare-queue amqp-delete-queue
